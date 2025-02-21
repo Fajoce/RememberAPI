@@ -1,0 +1,25 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32421.90
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RememberAPI", "RememberAPI\RememberAPI.csproj", "{D20E8CF4-A07E-4888-A20C-4F407B31FF29}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D20E8CF4-A07E-4888-A20C-4F407B31FF29}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D20E8CF4-A07E-4888-A20C-4F407B31FF29}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D20E8CF4-A07E-4888-A20C-4F407B31FF29}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D20E8CF4-A07E-4888-A20C-4F407B31FF29}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {A08B8C82-BD4F-4124-8D21-73BB36A8BFB2}
+	EndGlobalSection
+EndGlobal
