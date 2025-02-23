@@ -118,7 +118,7 @@ namespace RememberAPI.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<PayrollDTO> PostPayroll([FromBody] PayrollDTO payroll)
+        public ActionResult<InsertPaymentDTO> PostPayroll([FromBody] InsertPaymentDTO payroll)
         {
             if (!ModelState.IsValid)
             {
@@ -133,10 +133,10 @@ namespace RememberAPI.Controllers
             {
                 return BadRequest(payroll);
             }
-            if (payroll.Id > 0)
+           /* if (payroll.Id > 0)
             {
                 return StatusCode(StatusCodes.Status500InternalServerError);
-            }
+            }*/
             // payroll.EmployeeId = PayrollStore.payrollList.OrderByDescending(x => x.EmployeeId).FirstOrDefault().EmployeeId + 1;
             // PayrollStore.payrollList.Add(payroll);
             Payroll payment = new()
@@ -150,8 +150,8 @@ namespace RememberAPI.Controllers
             };
            _context.payrolls.Add(payment);
             _context.SaveChanges(); 
-            _logger.LogInformation("Payroll added into the database with code: " + payroll.Id);
-            return CreatedAtRoute("CreatePayroll", new {id = payroll.Id, payroll});
+            _logger.LogInformation("Payroll added into the database with code: " + payment.Id);
+            return CreatedAtRoute("CreatePayroll", new {id = payment.Id, payment});
         }
         //Delete
         [HttpDelete("id")]
@@ -221,7 +221,7 @@ namespace RememberAPI.Controllers
                 DepartmentId = x.DepartmentId
             };
             if (payment == null) return BadRequest();
-            patchpayroll.ApplyTo(payment, Model);
+            patchpayroll.ApplyTo(payment, ModelState);
             if(!ModelState.IsValid){
                 return BadRequest(ModelState);
              }
