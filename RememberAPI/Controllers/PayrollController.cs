@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -14,13 +15,15 @@ namespace RememberAPI.Controllers
     {
         private readonly ILogger<PayrollController> _logger;
         private readonly ApplicationDbContext _context;
-        public PayrollController(ILogger<PayrollController> logger, ApplicationDbContext applicationDbContext)
+        private readonly IMapper _imapper;
+        public PayrollController(ILogger<PayrollController> logger, ApplicationDbContext applicationDbContext, IMapper mapper)
         {
             _logger = logger;
-            _context = applicationDbContext;    
+            _context = applicationDbContext;   
+            _imapper = mapper;
         }
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<Payroll>>> GetList()
+        public async Task<ActionResult<IEnumerable<PayrollDTO>>> GetList()
         {
             
             var  result =  from d in _context.payrolls join a in _context.departments
@@ -53,7 +56,7 @@ namespace RememberAPI.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public async Task<ActionResult<Payroll>> GetPayrollById(int id)
+        public async Task<ActionResult<PayrollDTO>> GetPayrollById(int id)
         {
             if (id == 0)
             {
@@ -87,9 +90,7 @@ namespace RememberAPI.Controllers
                          where s.lastName.Contains(lastName)
                          select s;
            
-                return result.ToList().OrderByDescending(x => x.salary);
-            
-
+                return result.ToList().OrderByDescending(x => x.Salary);
 
         }
 
@@ -111,18 +112,15 @@ namespace RememberAPI.Controllers
                          };
             
             return await result.ToListAsync();
-
-
-
         }
         [HttpGet("between")]
         public IEnumerable<PayrollDTO> GetRangeSalary(string lastName)
         {
             var result = from s in PayrollStore.payrollList
-                         where s.salary >= 2000000 & s.salary <=3000000 & s.lastName == lastName
+                         where s.Salary >= 2000000 & s.Salary <=3000000 & s.lastName == lastName
                          select s;
 
-            return result.ToList().OrderByDescending(x => x.salary);
+            return result.ToList().OrderByDescending(x => x.Salary);
 
         }
        
@@ -130,7 +128,7 @@ namespace RememberAPI.Controllers
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public async Task<ActionResult<InsertPaymentDTO>> PostPayroll([FromBody] InsertPaymentDTO payroll)
+        public async Task<ActionResult<InsertPaymentDTO>> PostPayroll([FromBody] InsertPaymentDTO insertPayment)
         {
             if (!ModelState.IsValid)
             {
@@ -141,9 +139,9 @@ namespace RememberAPI.Controllers
                 ModelState.AddModelError("Error", "This code already exists!");
                 return BadRequest(ModelState);
             }*/
-            if (payroll == null)
+            if (insertPayment == null)
             {
-                return BadRequest(payroll);
+                return BadRequest(insertPayment);
             }
            /* if (payroll.Id > 0)
             {
@@ -151,7 +149,10 @@ namespace RememberAPI.Controllers
             }*/
             // payroll.EmployeeId = PayrollStore.payrollList.OrderByDescending(x => x.EmployeeId).FirstOrDefault().EmployeeId + 1;
             // PayrollStore.payrollList.Add(payroll);
-            Payroll payment = new()
+
+            var payment = _imapper.Map<Payroll>(insertPayment);
+           
+            /*Payroll payment = new()
             {
                 Name = payroll.Name,
                 lastName = payroll.lastName,
@@ -159,7 +160,7 @@ namespace RememberAPI.Controllers
                 Days = payroll.days,
                 PayDate = DateTime.Now,
                 DepartmentId = payroll.DepartmentId
-            };
+            };*/
            _context.payrolls.AddAsync(payment);
             await _context.SaveChangesAsync(); 
             _logger.LogInformation("Payroll added into the database with code: " + payment.Id);
@@ -185,7 +186,7 @@ namespace RememberAPI.Controllers
             return NoContent();
         }
         [HttpPut("id")]
-        public async Task<ActionResult<PayrollDTO>> PutPayroll(int id, [FromBody] PayrollDTO payroll)
+        public async Task<ActionResult<UpdatePayrollDTO>> PutPayroll(int id, [FromBody] UpdatePayrollDTO updatePayrollDTO)
         {
            /* if(payroll == null || id != payroll.EmployeeId)
             {
@@ -195,23 +196,25 @@ namespace RememberAPI.Controllers
            // x.salary = payroll.salary;
             //x.days = payroll.days;
             //x.Department = payroll.Department;
-            Payroll payment = new()
+
+            var payment = _imapper.Map<Payroll>(updatePayrollDTO);
+           /* Payroll payment = new()
             {
                 Id = id,
                 Name = payroll.Name,
                 lastName = payroll.lastName,
-                Salary = payroll.salary,
-                Days = payroll.days,
+                Salary = payroll.Salary,
+                Days = payroll.Days,
                 PayDate = DateTime.Now,
                 DepartmentId = payroll.DepartmentId
-            };
+            };*/
             _context.payrolls.Update(payment);
            await _context.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpPatch("id")]
-        public async Task<ActionResult<PayrollDTO>> PartialPatchPayroll(int id, JsonPatchDocument<PayrollDTO> patchpayroll)
+        public async Task<ActionResult<PayrollDTO>> PartialPatchPayroll(int id, JsonPatchDocument<UpdatePayrollDTO> patchpayroll)
         {
             if (patchpayroll == null || id == 0)
             {
@@ -224,30 +227,34 @@ namespace RememberAPI.Controllers
             {
                 return BadRequest();
             }*/
-            PayrollDTO payment = new()
+            UpdatePayrollDTO payment = _imapper.Map<UpdatePayrollDTO>(x);
+           
+            /*PayrollDTO payment = new()
             {
                 Id = x.Id,
                 Name = x.Name,
                 lastName = x.lastName,
-                salary = x.Salary,
-                days = x.Days,
+                Salary = x.Salary,
+                Days = x.Days,
                 DepartmentId = x.DepartmentId
-            };
+            };*/
             if (payment == null) return BadRequest();
             patchpayroll.ApplyTo(payment, ModelState);
             if(!ModelState.IsValid){
                 return BadRequest(ModelState);
              }
 
-            Payroll model = new()
+            Payroll model = _imapper.Map<Payroll>(payment);
+           
+            /*Payroll model = new()
             {
                 Id = payment.Id,
                 Name = payment.Name,
                 lastName = payment.lastName,
-                Salary = payment.salary,
-                Days = payment.days,
+                Salary = payment.Salary,
+                Days = payment.Days,
                 DepartmentId = payment.DepartmentId
-            };
+            };*/
 
             _context.payrolls.Update(model);
            await _context.SaveChangesAsync();
