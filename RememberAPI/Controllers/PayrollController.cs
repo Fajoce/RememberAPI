@@ -20,10 +20,10 @@ namespace RememberAPI.Controllers
             _context = applicationDbContext;    
         }
         [HttpGet]
-        public ActionResult<IEnumerable<Payroll>> GetList()
+        public async Task<ActionResult<IEnumerable<Payroll>>> GetList()
         {
             
-            var  result = from d in _context.payrolls join a in _context.departments
+            var  result =  from d in _context.payrolls join a in _context.departments
                           on d.DepartmentId equals a.Id
                           select new 
                           {
@@ -44,7 +44,7 @@ namespace RememberAPI.Controllers
             else
             {
                 _logger.LogInformation("Elements retrieving sucessfully");
-                return Ok(result.ToList());
+                return Ok(await result.ToListAsync());
             }
         }
 
@@ -53,7 +53,7 @@ namespace RememberAPI.Controllers
         [ProducesResponseType(StatusCodes.Status204NoContent)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
-        public  ActionResult<Payroll> GetPayrollById(int id)
+        public async Task<ActionResult<Payroll>> GetPayrollById(int id)
         {
             if (id == 0)
             {
@@ -61,7 +61,7 @@ namespace RememberAPI.Controllers
 
             }
             //var result = PayrollStore.payrollList.FirstOrDefault(x => x.EmployeeId ==id);
-            var result = from x in _context.payrolls join y in _context.departments
+            var result = await (from x in _context.payrolls join y in _context.departments
                          on x.DepartmentId equals y.Id
                          where x.Id == id select new
                          {
@@ -72,7 +72,7 @@ namespace RememberAPI.Controllers
                              x.Days,
                              x.DepartmentId,
                              y.DepartmentName
-                         };
+                         }).FirstOrDefaultAsync();
             if (result == null)
             {
                 return BadRequest();
@@ -92,6 +92,29 @@ namespace RememberAPI.Controllers
 
 
         }
+
+        [HttpGet("Aggregate")]
+        public async Task<List<AgreggateDTO>> Aggregate()
+        {
+            var result = from s in _context.payrolls join d in _context.departments
+                         on s.DepartmentId equals d.Id
+                         group s by s.DepartmentId into g
+                         
+                         select new AgreggateDTO
+                         {                  
+                             DepartmentId = g.Key,
+                             Quantity = g.Count(),
+                             Average = g.Average(x=> x.Salary),
+                             MaxSalary = g.Max(x=> x.Salary),
+                             MinSalary = g.Min(x=> x.Salary)
+                            
+                         };
+            
+            return await result.ToListAsync();
+
+
+
+        }
         [HttpGet("between")]
         public IEnumerable<PayrollDTO> GetRangeSalary(string lastName)
         {
@@ -102,23 +125,12 @@ namespace RememberAPI.Controllers
             return result.ToList().OrderByDescending(x => x.salary);
 
         }
-        [HttpGet("Average")]
-        public double GetRangeSalary2()
-        {
-            var result = (from s in PayrollStore.payrollList
-                          select s.salary)
-                         .Average();                    
-                        
-
-            return result;
-
-        }
-
+       
         [HttpPost()]
         [ProducesResponseType(StatusCodes.Status201Created)]
         [ProducesResponseType(StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public ActionResult<InsertPaymentDTO> PostPayroll([FromBody] InsertPaymentDTO payroll)
+        public async Task<ActionResult<InsertPaymentDTO>> PostPayroll([FromBody] InsertPaymentDTO payroll)
         {
             if (!ModelState.IsValid)
             {
@@ -148,8 +160,8 @@ namespace RememberAPI.Controllers
                 PayDate = DateTime.Now,
                 DepartmentId = payroll.DepartmentId
             };
-           _context.payrolls.Add(payment);
-            _context.SaveChanges(); 
+           _context.payrolls.AddAsync(payment);
+            await _context.SaveChangesAsync(); 
             _logger.LogInformation("Payroll added into the database with code: " + payment.Id);
             return CreatedAtRoute("CreatePayroll", new {id = payment.Id, payment});
         }
@@ -157,22 +169,23 @@ namespace RememberAPI.Controllers
         [HttpDelete("id")]
         [ProducesResponseType(StatusCodes.Status200OK)]
         [ProducesResponseType(StatusCodes.Status204NoContent)]
-        public IActionResult DeletePayroll(int id)
+        public async Task<IActionResult> DeletePayroll(int id)
         {
             if(id== 0) { return BadRequest(); }
             //var x = PayrollStore.payrollList.FirstOrDefault(a=> a.EmployeeId == id);
-            var x = _context.payrolls.FirstOrDefault(a => a.Id == id);
+           var x = await _context.payrolls.FirstOrDefaultAsync(a => a.Id == id);
+        
             if (x == null)
             {
                 return NotFound();
             }
             //PayrollStore.payrollList.Remove(x);
             _context.payrolls.Remove(x);
-            _context.SaveChanges();
+           await _context.SaveChangesAsync();
             return NoContent();
         }
         [HttpPut("id")]
-        public ActionResult<PayrollDTO> PutPayroll(int id, [FromBody] PayrollDTO payroll)
+        public async Task<ActionResult<PayrollDTO>> PutPayroll(int id, [FromBody] PayrollDTO payroll)
         {
            /* if(payroll == null || id != payroll.EmployeeId)
             {
@@ -193,19 +206,19 @@ namespace RememberAPI.Controllers
                 DepartmentId = payroll.DepartmentId
             };
             _context.payrolls.Update(payment);
-            _context.SaveChanges();
+           await _context.SaveChangesAsync();
             return NoContent();
         }
 
         [HttpPatch("id")]
-        public ActionResult<PayrollDTO> PartialPatchPayroll(int id, JsonPatchDocument<PayrollDTO> patchpayroll)
+        public async Task<ActionResult<PayrollDTO>> PartialPatchPayroll(int id, JsonPatchDocument<PayrollDTO> patchpayroll)
         {
             if (patchpayroll == null || id == 0)
             {
                 return BadRequest();
             }
             //var x = PayrollStore.payrollList.FirstOrDefault(a => a.Id == id);
-            var x = _context.payrolls.AsNoTracking().FirstOrDefault(a => a.Id == id);
+            var x = await _context.payrolls.AsNoTracking().FirstOrDefaultAsync(a => a.Id == id);
             /*patchpayroll.ApplyTo(x, ModelState);
             if (!ModelState.IsValid)
             {
@@ -237,7 +250,7 @@ namespace RememberAPI.Controllers
             };
 
             _context.payrolls.Update(model);
-            _context.SaveChanges();
+           await _context.SaveChangesAsync();
 
             return NoContent();
         }
